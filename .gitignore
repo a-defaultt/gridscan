@@ -1,0 +1,17 @@
+# runtime state / secrets — never commit these
+*.db
+*.env
+scope.txt
+out/
+__pycache__/
+*.pyc
+
+# gridscan-ui local build/test artifacts — never commit
+ui/backend/testenv/
+ui/backend/.venv/
+ui/backend/venv/
+ui/backend/__pycache__/
+credentials.json
+secret_key*
+*.pem
+shots/

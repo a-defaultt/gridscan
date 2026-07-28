@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>gridscan &middot; review</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="brand"><span class="dot">grid</span>scan</div>
+      <nav class="mainnav">
+        <a href="dashboard.html" data-nav="dashboard.html">Dashboard</a>
+        <a href="findings.html" data-nav="findings.html">Findings</a>
+        <a href="review.html" data-nav="review.html">Review</a>
+        <a href="assets.html" data-nav="assets.html">Assets</a>
+        <a href="scope.html" data-nav="scope.html">Scope</a>
+        <a href="settings.html" data-nav="settings.html">Settings</a>
+        <a href="users.html" data-nav="users.html">Users</a>
+      </nav>
+      <div class="topbar-right">
+        <span class="user-tag" data-user-tag></span>
+        <button data-logout>Logout</button>
+      </div>
+    </header>
+
+    <main class="content wide">
+      <div class="panel">
+        <div class="panel-header">
+          <h2>Review</h2>
+        </div>
+        <p class="text-dim">Open vulnerabilities that need a triage decision.</p>
+
+        <form class="filters" id="filters-form">
+          <div class="field">
+            <label>Severity</label>
+            <div class="checkbox-group" id="filter-severity">
+              <label class="checkbox-item"><input type="checkbox" value="critical" checked /> Critical</label>
+              <label class="checkbox-item"><input type="checkbox" value="high" checked /> High</label>
+              <label class="checkbox-item"><input type="checkbox" value="medium" checked /> Medium</label>
+              <label class="checkbox-item"><input type="checkbox" value="low" checked /> Low</label>
+              <label class="checkbox-item"><input type="checkbox" value="info" checked /> Info</label>
+            </div>
+          </div>
+          <div class="field">
+            <label>Triage</label>
+            <div class="checkbox-group" id="filter-triage">
+              <label class="checkbox-item"><input type="checkbox" value="unreviewed" checked /> Unreviewed</label>
+              <label class="checkbox-item"><input type="checkbox" value="confirmed" checked /> Confirmed</label>
+              <label class="checkbox-item"><input type="checkbox" value="false_positive" checked /> False Positive</label>
+              <label class="checkbox-item"><input type="checkbox" value="accepted_risk" checked /> Accepted Risk</label>
+              <label class="checkbox-item"><input type="checkbox" value="remediating" checked /> Remediating</label>
+            </div>
+          </div>
+          <div class="field">
+            <label for="filter-host">Target / host</label>
+            <input type="search" id="filter-host" placeholder="e.g. noco or *.example.com" autocomplete="off" />
+          </div>
+          <div class="field">
+            <button type="submit" id="apply-filters">Apply</button>
+          </div>
+        </form>
+
+        <div id="review-container">
+          <div class="loading">Loading findings...</div>
+        </div>
+      </div>
+    </main>
+
+    <footer class="hint">gridscan-ui &mdash; internal tool</footer>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/review.js"></script>
+</body>
+</html>

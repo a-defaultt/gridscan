@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>gridscan &middot; dashboard</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="brand"><span class="dot">grid</span>scan</div>
+      <nav class="mainnav">
+        <a href="dashboard.html" data-nav="dashboard.html">Dashboard</a>
+        <a href="findings.html" data-nav="findings.html">Findings</a>
+        <a href="review.html" data-nav="review.html">Review</a>
+        <a href="assets.html" data-nav="assets.html">Assets</a>
+        <a href="scope.html" data-nav="scope.html">Scope</a>
+        <a href="settings.html" data-nav="settings.html">Settings</a>
+        <a href="users.html" data-nav="users.html">Users</a>
+      </nav>
+      <div class="topbar-right">
+        <span class="user-tag" data-user-tag></span>
+        <button data-logout>Logout</button>
+      </div>
+    </header>
+
+    <main class="content">
+      <div class="panel">
+        <div class="panel-header">
+          <h2>Scan control</h2>
+          <div class="actions-row">
+            <span class="scan-status idle" id="scan-status">
+              <span class="pulse-dot"></span>
+              <span id="scan-status-text">checking...</span>
+            </span>
+            <button id="log-toggle-btn" aria-expanded="false">View log</button>
+            <button class="danger" id="stop-btn" data-requires-admin hidden>Stop scan</button>
+            <button class="primary" id="trigger-btn" data-requires-admin>Trigger scan</button>
+          </div>
+        </div>
+        <div id="trigger-msg"></div>
+        <div id="log-panel" class="log-panel" hidden>
+          <pre id="log-content" class="log-content">(no log content yet)</pre>
+        </div>
+
+        <div class="actions-row mt-14">
+          <span class="scan-status idle" id="discover-status">
+            <span class="pulse-dot"></span>
+            <span id="discover-status-text">checking...</span>
+          </span>
+          <button class="primary" id="discover-btn" data-requires-admin>Discover</button>
+          <span class="text-dim">Discover targets (no vulnerability scan), review, then scan just what you select.</span>
+        </div>
+        <div id="discover-msg"></div>
+
+        <div id="discovery-empty" class="text-dim mt-14">Run Discover first to see available targets.</div>
+
+        <div id="discovery-panel" hidden>
+          <div class="actions-row mt-14">
+            <button id="select-all-btn">Select all</button>
+            <button id="deselect-all-btn">Deselect all</button>
+            <span class="text-dim" id="discovery-generated"></span>
+            <span class="spacer"></span>
+            <button class="primary" id="scan-selected-btn" data-requires-admin disabled>Scan selected (0)</button>
+          </div>
+          <div class="table-scroll mt-14">
+            <table>
+              <thead>
+                <tr>
+                  <th></th>
+                  <th>URL</th>
+                  <th>Host</th>
+                  <th>Tech</th>
+                  <th>Status</th>
+                  <th>Title</th>
+                </tr>
+              </thead>
+              <tbody id="discovery-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header">
+          <h2>Recent runs</h2>
+        </div>
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>Started</th>
+                <th>Finished</th>
+                <th>Triggered by</th>
+                <th>Targets</th>
+                <th>New</th>
+                <th>Reappeared</th>
+                <th>Resolved</th>
+                <th>Total seen</th>
+              </tr>
+            </thead>
+            <tbody id="runs-body">
+              <tr class="empty-row"><td colspan="8">Loading runs...</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="text-dim mt-14">Click a run to see its report.</p>
+      </div>
+    </main>
+
+    <footer class="hint">gridscan-ui &mdash; internal tool</footer>
+  </div>
+
+  <div id="run-panel-overlay" class="run-panel-overlay" hidden></div>
+  <aside id="run-panel" class="run-panel" hidden>
+    <div class="run-panel-header">
+      <h3>Run detail</h3>
+      <button id="run-panel-close" aria-label="Close">&times;</button>
+    </div>
+    <div class="run-panel-body">
+      <dl class="run-meta">
+        <dt>Started</dt>
+        <dd id="run-panel-started"></dd>
+        <dt>Finished</dt>
+        <dd id="run-panel-finished"></dd>
+        <dt>Triggered by</dt>
+        <dd id="run-panel-triggered-by"></dd>
+        <dt>Summary</dt>
+        <dd id="run-panel-summary"></dd>
+      </dl>
+      <div class="run-panel-report-header">
+        <h4>Report snapshot</h4>
+        <a id="run-panel-open-full" href="#" target="_blank" rel="noopener">Open full report &rarr;</a>
+      </div>
+      <div id="run-panel-report-content" class="loading">Loading report...</div>
+    </div>
+  </aside>
+
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/dashboard.js"></script>
+</body>
+</html>

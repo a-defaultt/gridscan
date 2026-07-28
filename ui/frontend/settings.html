@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>gridscan &middot; settings</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="brand"><span class="dot">grid</span>scan</div>
+      <nav class="mainnav">
+        <a href="dashboard.html" data-nav="dashboard.html">Dashboard</a>
+        <a href="findings.html" data-nav="findings.html">Findings</a>
+        <a href="review.html" data-nav="review.html">Review</a>
+        <a href="assets.html" data-nav="assets.html">Assets</a>
+        <a href="scope.html" data-nav="scope.html">Scope</a>
+        <a href="settings.html" data-nav="settings.html">Settings</a>
+        <a href="users.html" data-nav="users.html">Users</a>
+      </nav>
+      <div class="topbar-right">
+        <span class="user-tag" data-user-tag></span>
+        <button data-logout>Logout</button>
+      </div>
+    </header>
+
+    <main class="content">
+      <div class="panel">
+        <div class="panel-header">
+          <h2>My account</h2>
+        </div>
+        <p class="text-dim">Role: <span id="account-role">-</span> (only an admin can change this, via the Users page)</p>
+
+        <form id="profile-form">
+          <div class="form-grid">
+            <div>
+              <label for="profile-name">Name</label>
+              <input type="text" id="profile-name" name="name" autocomplete="name" />
+            </div>
+            <div>
+              <label for="profile-email">Email</label>
+              <input type="text" id="profile-email" name="email" autocomplete="email" />
+            </div>
+          </div>
+          <button type="submit" class="primary mt-14" id="profile-save-btn">Save profile</button>
+        </form>
+        <div id="profile-msg"></div>
+
+        <form id="password-form" class="mt-14">
+          <label for="current-password">Current password</label>
+          <input type="password" id="current-password" name="current_password" autocomplete="current-password" />
+
+          <label for="new-password-account">New password</label>
+          <input type="password" id="new-password-account" name="new_password" autocomplete="new-password" />
+
+          <label for="confirm-password-account">Confirm new password</label>
+          <input type="password" id="confirm-password-account" autocomplete="new-password" />
+
+          <button type="submit" class="mt-14" id="password-save-btn">Change password</button>
+        </form>
+        <div id="password-msg"></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header">
+          <h2>Notifications</h2>
+        </div>
+        <p class="text-dim">
+          Set or rotate the Slack webhook gridscan posts new findings to. The
+          current value is shown masked below &mdash; use "Show" to reveal it
+          (this is audit-logged) or set a new one in the field further down.
+        </p>
+
+        <label>Current Slack webhook</label>
+        <div class="actions-row">
+          <span id="slack-masked-value" class="mono text-dim">-</span>
+          <button type="button" id="slack-reveal-btn" data-requires-admin disabled>Show</button>
+        </div>
+
+        <form id="webhook-form" class="mt-14">
+          <label for="webhook-url">Set new Slack webhook URL</label>
+          <input
+            type="url"
+            id="webhook-url"
+            name="webhook-url"
+            placeholder="https://hooks.slack.com/services/..."
+            autocomplete="off"
+          />
+          <button type="submit" class="primary mt-14" data-requires-admin>Save webhook</button>
+          <button type="button" class="mt-14" id="slack-test-btn" data-requires-admin>Send test Slack message</button>
+        </form>
+
+        <div id="webhook-msg"></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header">
+          <h2>SMTP</h2>
+        </div>
+        <p class="text-dim">
+          Email settings for gridscan's scan alerts (sent alongside Slack on
+          new/resolved findings). The password is write-only &mdash; it is
+          never shown here once set; leave it blank when saving to keep the
+          existing one.
+        </p>
+
+        <form id="smtp-form">
+          <div class="form-grid">
+            <div>
+              <label for="smtp-host">SMTP host</label>
+              <input type="text" id="smtp-host" name="host" autocomplete="off" />
+            </div>
+            <div>
+              <label for="smtp-port">SMTP port</label>
+              <input type="number" id="smtp-port" name="port" min="1" max="65535" autocomplete="off" />
+            </div>
+            <div>
+              <label for="smtp-username">Username</label>
+              <input type="text" id="smtp-username" name="username" autocomplete="off" />
+            </div>
+            <div>
+              <label for="smtp-password">Password</label>
+              <input type="password" id="smtp-password" name="password" placeholder="leave blank to keep existing" autocomplete="new-password" />
+            </div>
+            <div>
+              <label for="smtp-from">From address</label>
+              <input type="text" id="smtp-from" name="from_addr" autocomplete="off" />
+            </div>
+            <div>
+              <label for="smtp-to">To address</label>
+              <input type="text" id="smtp-to" name="to_addr" autocomplete="off" />
+            </div>
+          </div>
+          <p class="text-dim">Password: <span id="smtp-password-status">-</span></p>
+          <button type="submit" class="primary mt-14" data-requires-admin>Save SMTP settings</button>
+          <button type="button" class="mt-14" id="smtp-test-btn" data-requires-admin>Send test email</button>
+        </form>
+
+        <div id="smtp-msg"></div>
+      </div>
+    </main>
+
+    <footer class="hint">gridscan-ui &mdash; internal tool</footer>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/settings.js"></script>
+</body>
+</html>

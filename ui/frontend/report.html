@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>gridscan &middot; run report</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="brand"><span class="dot">grid</span>scan</div>
+      <nav class="mainnav">
+        <a href="dashboard.html" data-nav="dashboard.html">Dashboard</a>
+        <a href="findings.html" data-nav="findings.html">Findings</a>
+        <a href="review.html" data-nav="review.html">Review</a>
+        <a href="assets.html" data-nav="assets.html">Assets</a>
+        <a href="scope.html" data-nav="scope.html">Scope</a>
+        <a href="settings.html" data-nav="settings.html">Settings</a>
+        <a href="users.html" data-nav="users.html">Users</a>
+      </nav>
+      <div class="topbar-right">
+        <span class="user-tag" data-user-tag></span>
+        <button data-logout>Logout</button>
+      </div>
+    </header>
+
+    <main class="content wide">
+      <div class="panel">
+        <div class="panel-header">
+          <h2 id="report-title">Run report</h2>
+          <a href="dashboard.html">&larr; Back to dashboard</a>
+        </div>
+        <div id="report-body" class="loading">Loading report...</div>
+      </div>
+    </main>
+
+    <footer class="hint">gridscan-ui &mdash; internal tool</footer>
+  </div>
+
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/report.js"></script>
+</body>
+</html>
