@@ -9,6 +9,16 @@ const SEVERITY_LABELS = {
   info: "Info",
 };
 
+const VERIFY_LABELS = {
+  confirmed: "✓ Verified",
+  unconfirmed: "Unconfirmed",
+  insufficient_data: "Insufficient data",
+};
+function renderVerifyBadge(status) {
+  if (!status || status === "not_run") return "";
+  return `<span class="badge badge-verify-${status}">${VERIFY_LABELS[status] || status}</span>`;
+}
+
 const byScanContainer = document.getElementById("by-scan-container");
 const expandAllBtn = document.getElementById("expand-all-btn");
 const collapseAllBtn = document.getElementById("collapse-all-btn");
@@ -101,6 +111,7 @@ function renderFindingsTable(list) {
               <span class="mono text-dim">${escapeHtml(f.template_id)}</span></span>
             <span class="finding-summary-host">${escapeHtml(f.host)}</span>
             <span class="badge ${statusClass}">${escapeHtml(f.status)}</span>
+            ${renderVerifyBadge(f.verification_status)}
             <span class="text-dim">${formatDate(f.first_seen)}</span>
           </summary>
           ${renderFindingDetail(f)}

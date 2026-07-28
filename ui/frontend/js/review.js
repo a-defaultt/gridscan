@@ -22,6 +22,16 @@ const TRIAGE_LABELS = {
   remediating: "Remediating",
 };
 
+const VERIFY_LABELS = {
+  confirmed: "✓ Verified",
+  unconfirmed: "Unconfirmed",
+  insufficient_data: "Insufficient data",
+};
+function renderVerifyBadge(status) {
+  if (!status || status === "not_run") return "";
+  return `<span class="badge badge-verify-${status}">${VERIFY_LABELS[status] || status}</span>`;
+}
+
 const reviewContainer = document.getElementById("review-container");
 const severityGroup = document.getElementById("filter-severity");
 const triageGroup = document.getElementById("filter-triage");
@@ -130,6 +140,7 @@ function renderFindingsList(list) {
             <span class="finding-summary-host">${escapeHtml(f.host)}</span>
             ${renderTriageBadge(f.triage_status)}
             ${renderTriageSelect(f.finding_key, f.triage_status)}
+            ${renderVerifyBadge(f.verification_status)}
           </summary>
           ${renderFindingDetail(f)}
         </details>

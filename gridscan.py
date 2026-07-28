@@ -26,6 +26,7 @@ import sqlite3
 import subprocess
 import sys
 import tempfile
+import time
 import urllib.request
 from datetime import datetime, timezone
 from email.message import EmailMessage
@@ -252,6 +253,7 @@ CREATE TABLE IF NOT EXISTS findings (
     extracted TEXT, type TEXT,
     status TEXT NOT NULL DEFAULT 'open',    -- open | resolved
     triage_status TEXT NOT NULL DEFAULT 'unreviewed',
+    verification_status TEXT NOT NULL DEFAULT 'not_run',
     first_seen TEXT, last_seen TEXT, resolved_at TEXT
 );
 CREATE TABLE IF NOT EXISTS assets (
@@ -316,6 +318,115 @@ def flatten(f: dict) -> dict:
     }
 
 
+# ---------------------------------------------------------------------------
+# lightweight, non-destructive finding verification (reflected-XSS / SQLi only, v1)
+# ---------------------------------------------------------------------------
+
+_VERIFY_HTTP_TIMEOUT = 10  # seconds - matches notify()'s existing urlopen convention
+_SQLI_DELAY_MAX = 10       # seconds - cap so one template's payload can't blow up scan duration
+
+_SQLI_TIME_PATTERNS = [
+    re.compile(r"SLEEP\(\s*(\d+)\s*\)", re.IGNORECASE),               # MySQL / MariaDB
+    re.compile(r"WAITFOR\s+DELAY\s+'0:0:(\d+)'", re.IGNORECASE),      # MSSQL
+    re.compile(r"PG_SLEEP\(\s*(\d+)\s*\)", re.IGNORECASE),            # PostgreSQL
+]
+
+
+def _verify_http_get(url: str) -> tuple[int, str, float]:
+    """Fresh, independent GET - same urlopen()/timeout convention as notify().
+    Raises on any failure (bad scheme, DNS, timeout, non-http URL); caught by
+    verify_finding()'s outer try/except.
+
+    matched-at values aren't guaranteed to be fully percent-encoded (some
+    templates' payloads carry raw spaces/quotes), and urllib.request rejects
+    URLs containing raw control characters outright. quote() with '%' in the
+    safe set fixes the raw case without double-encoding an already-encoded
+    one (a literal '%20' stays '%20' rather than becoming '%2520')."""
+    started = time.perf_counter()
+    safe_url = urllib.parse.quote(url, safe=":/?&=#%")
+    req = urllib.request.Request(safe_url, headers={"User-Agent": "gridscan-verify/1.0"})
+    with urllib.request.urlopen(req, timeout=_VERIFY_HTTP_TIMEOUT) as resp:
+        status = resp.status
+        body = resp.read().decode("utf-8", errors="replace")
+    return status, body, time.perf_counter() - started
+
+
+def _verify_xss(raw: dict) -> str:
+    extracted = raw.get("extracted-results") or []
+    if not extracted or len(str(extracted[0])) < 4:
+        return "insufficient_data"  # nothing distinctive to confirm against
+    marker = str(extracted[0])
+    url = raw.get("matched-at")
+    if not url:
+        return "insufficient_data"
+    status, body, _elapsed = _verify_http_get(url)
+    if not (200 <= status < 300):
+        return "insufficient_data"  # conservative: don't guess off an error page
+    return "confirmed" if marker in body else "unconfirmed"
+
+
+def _sqli_control_url(matched_at: str) -> tuple[int, str] | None:
+    """Find a recognized time-based-blind delay call in matched_at. Returns
+    (delay_seconds, control_url) with the delay argument replaced by "0", or
+    None if nothing recognized or the delay exceeds _SQLI_DELAY_MAX. Slices
+    matched_at at the captured digits' exact span rather than re.sub, so only
+    that numeric argument is touched - everything else in the URL (including
+    any other digits elsewhere in it) is left alone."""
+    for pattern in _SQLI_TIME_PATTERNS:
+        m = pattern.search(matched_at)
+        if not m:
+            continue
+        delay = int(m.group(1))
+        if delay <= 0 or delay > _SQLI_DELAY_MAX:
+            return None
+        control_url = matched_at[: m.start(1)] + "0" + matched_at[m.end(1):]
+        return delay, control_url
+    return None
+
+
+def _verify_sqli(raw: dict) -> str:
+    matched_at = raw.get("matched-at") or ""
+    found = _sqli_control_url(matched_at)
+    if found is None:
+        return "insufficient_data"  # boolean/error-based template, or delay too large
+    delay, control_url = found
+    _st, _bt, test_duration = _verify_http_get(matched_at)
+    _sc, _bc, control_duration = _verify_http_get(control_url)
+    # ponytail: single-shot differential, no repeat-to-average-out-jitter -
+    # a confidence signal for human triage, not courtroom-grade proof. Upgrade
+    # to an N-sample median if unconfirmed false-negatives turn out common.
+    if test_duration >= delay * 0.8 and control_duration < delay * 0.5:
+        return "confirmed"
+    return "unconfirmed"
+
+
+def verify_finding(raw: dict) -> str:
+    """Safe, non-destructive differential re-test, reflected-XSS and
+    time-based-blind SQLi only (v1 scope) - a false-positive-reduction signal
+    for human triage, not exploitation. Free function (not a Store method):
+    DB-free, independently testable. Must never raise - any unexpected
+    shape/network failure/regex miss degrades to 'insufficient_data' rather
+    than ever crashing ingest_findings()'s loop (and the whole scan)."""
+    try:
+        info = raw.get("info") or {}
+        tags = [str(t).lower() for t in (info.get("tags") or [])]
+        template_id = str(raw.get("template-id") or "").lower()
+
+        is_xss = "xss" in tags or "xss" in template_id
+        is_sqli = (
+            "sqli" in tags or "sql-injection" in tags
+            or "sqli" in template_id or "sql-injection" in template_id
+        )
+
+        if is_xss:
+            return _verify_xss(raw)
+        if is_sqli:
+            return _verify_sqli(raw)
+        return "not_run"  # zero network calls for every other finding type
+    except Exception:
+        return "insufficient_data"
+
+
 class Store:
     def __init__(self, path: str):
         self.db = sqlite3.connect(path)
@@ -324,6 +435,7 @@ class Store:
         self._migrate_assets_triage_status()
         self._migrate_runs_triggered_by()
         self._migrate_findings_triage_status()
+        self._migrate_findings_verification_status()
 
     def _migrate_assets_triage_status(self) -> None:
         """Idempotent migration for DBs created before the assets-triage
@@ -361,6 +473,16 @@ class Store:
             )
             self.db.commit()
 
+    def _migrate_findings_verification_status(self) -> None:
+        """Same idempotent-ALTER pattern as _migrate_findings_triage_status,
+        for DBs created before reflected-XSS/SQLi verification shipped."""
+        cols = [row[1] for row in self.db.execute("PRAGMA table_info(findings)").fetchall()]
+        if "verification_status" not in cols:
+            self.db.execute(
+                "ALTER TABLE findings ADD COLUMN verification_status TEXT NOT NULL DEFAULT 'not_run'"
+            )
+            self.db.commit()
+
     def ingest_findings(self, scope: str, jsonl: Path, covered_hosts: set[str] | None = None) -> dict:
         ts = now_iso()
         seen: set[str] = set()
@@ -384,25 +506,34 @@ class Store:
             row = flatten(raw)
             if k not in prior:
                 new.append((k, row))
+                verification = verify_finding(raw)
                 self.db.execute(
                     """INSERT INTO findings
                        (finding_key, scope, template_id, name, severity, host,
                         matched_at, matcher_name, extracted, type,
-                        status, first_seen, last_seen)
-                       VALUES (?,?,?,?,?,?,?,?,?,?, 'open', ?, ?)""",
+                        status, verification_status, first_seen, last_seen)
+                       VALUES (?,?,?,?,?,?,?,?,?,?, 'open', ?, ?, ?)""",
                     (k, scope, row["template_id"], row["name"], row["severity"],
                      row["host"], row["matched_at"], row["matcher_name"],
-                     row["extracted"], row["type"], ts, ts),
+                     row["extracted"], row["type"], verification, ts, ts),
                 )
                 prior[k] = {"status": "open", "host": row["host"], "template_id": row["template_id"],
                             "name": row["name"], "severity": row["severity"], "matched_at": row["matched_at"]}
             else:
-                if prior[k]["status"] == "resolved":
+                # Only re-verify on a resolved->reappeared transition, never on
+                # a stable already-open finding re-seen in a routine run - that
+                # would mean silently re-sending SQLi timing payloads forever
+                # for findings nothing actually changed about.
+                reappeared_now = prior[k]["status"] == "resolved"
+                if reappeared_now:
                     reappeared.append((k, row))
+                verification = verify_finding(raw) if reappeared_now else None
                 self.db.execute(
                     """UPDATE findings SET last_seen=?, status='open',
-                       resolved_at=NULL, severity=?, name=? WHERE finding_key=?""",
-                    (ts, row["severity"], row["name"], k),
+                       resolved_at=NULL, severity=?, name=?,
+                       verification_status=COALESCE(?, verification_status)
+                       WHERE finding_key=?""",
+                    (ts, row["severity"], row["name"], verification, k),
                 )
 
         # Anything previously open, not seen this run, AND on a host this run

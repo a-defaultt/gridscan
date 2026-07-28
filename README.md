@@ -77,7 +77,7 @@ A cron entry or systemd timer is all the "continuous" you need for one org:
 | Notifications | ✅ webhook (`--notify`) |
 | Internal-network reach | ✅ you're already inside it |
 | Massively parallel engine (35–50× faster) | ⚠️ single-box; irrelevant at one-org scale. Shard the target list across workers if scans get slow. |
-| Autonomous exploit validation (Neo) | ❌ no OSS equivalent. Findings get human triage. This is the one real gap. |
+| Autonomous exploit validation (Neo) | ⚠️ partial: new/reappeared reflected-XSS and time-based-blind SQLi findings get a non-destructive differential re-test (reflection-encoding check; timing differential against a neutralized control payload) to cut false positives before human triage. Not real exploitation, and only these two classes — everything else still gets human triage as-is. |
 
 ## Grid integration
 

@@ -345,6 +345,10 @@ tr:hover td {
 .badge-triage-accepted_risk   { color: var(--sev-medium); border: 1px solid var(--sev-medium); background: rgba(255,212,59,0.12); }
 .badge-triage-remediating     { color: var(--accent); border: 1px solid var(--accent); background: rgba(77,157,255,0.12); }
 
+.badge-verify-confirmed         { color: var(--ok); border: 1px solid var(--ok); background: rgba(63,185,80,0.12); }
+.badge-verify-unconfirmed       { color: var(--text-dim); border: 1px solid var(--text-dim); background: rgba(136,146,160,0.12); }
+.badge-verify-insufficient_data { color: var(--sev-medium); border: 1px solid var(--sev-medium); background: rgba(255,212,59,0.12); }
+
 .triage-cell {
   display: flex;
   flex-direction: column;
